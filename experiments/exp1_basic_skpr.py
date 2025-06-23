@@ -7,6 +7,12 @@
 import os
 import sys
 import numpy as np
+
+# Налаштування matplotlib backend
+import matplotlib
+if not hasattr(sys, 'ps1'):  # Якщо не в інтерактивному режимі
+    matplotlib.use('Agg')
+    
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.svm import SVC
@@ -20,6 +26,7 @@ from src.data_loader import load_raw_signals_and_labels
 from src.preprocessing import StandardScaler3D
 from src.feature_extractors import AggregatedFeatureExtractor
 from src.utils import plot_confusion_matrix, save_classification_report
+from src.model_utils import save_experiment_models
 
 
 def run(results_dir=None):
@@ -119,14 +126,12 @@ def run(results_dir=None):
         plt.savefig(f"{results_dir}/figures/exp1_confusion_matrix.png", dpi=300, bbox_inches='tight')
         save_classification_report(report, f"{results_dir}/reports/exp1_classification_report.txt")
         
-        # Зберігаємо модель
-        import pickle
-        with open(f"{results_dir}/models/exp1_model.pkl", 'wb') as f:
-            pickle.dump({
-                'feature_extractor': feature_extractor,
-                'scaler': scaler,
-                'classifier': classifier
-            }, f)
+        # Зберігаємо модель безпечним способом
+        save_experiment_models(results_dir, {
+            'feature_extractor': feature_extractor,
+            'scaler': scaler,
+            'classifier': classifier
+        }, 'exp1')
     
     plt.show()
     
@@ -145,6 +150,9 @@ def run(results_dir=None):
     print("\nТоп-5 найчастіших помилок:")
     for count, true_class, pred_class in errors[:5]:
         print(f"   {true_class} → {pred_class}: {count} випадків")
+    
+    # Закриваємо всі фігури matplotlib
+    plt.close('all')
     
     # 10. Повертаємо результати
     results = {

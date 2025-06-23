@@ -7,6 +7,12 @@
 import os
 import sys
 import numpy as np
+
+# Налаштування matplotlib backend
+import matplotlib
+if not hasattr(sys, 'ps1'):  # Якщо не в інтерактивному режимі
+    matplotlib.use('Agg')
+    
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
@@ -236,10 +242,9 @@ def run(results_dir=None):
     
     # Графік функцій
     plt.subplot(1, 2, 1)
-    for i in range(2, best_params['n'] + 1):
-        p = optimal_extractor._compute_power(i, best_params['alpha'])
-        y = np.sign(x) * (np.abs(x) + optimal_extractor.epsilon)**p
-        plt.plot(x, y, label=f'φ_{i-1}(x), p={p:.3f}')
+    for i, power in enumerate(optimal_extractor.basis_powers_):
+        y = np.sign(x) * (np.abs(x) + optimal_extractor.epsilon)**power
+        plt.plot(x, y, label=f'φ_{i+1}(x), p={power:.3f}')
     
     plt.xlabel('x', fontsize=12)
     plt.ylabel('φ(x)', fontsize=12)
@@ -291,6 +296,9 @@ def run(results_dir=None):
     if results_dir:
         save_experiment_summary(results, 
                               f"{results_dir}/reports/exp3_summary.txt")
+    
+    # Закриваємо всі фігури matplotlib
+    plt.close('all')
     
     return results
 

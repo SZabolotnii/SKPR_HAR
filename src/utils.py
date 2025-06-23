@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix
 import json
 
 
@@ -59,6 +60,8 @@ def plot_confusion_matrix(y_true, y_pred, class_names=None, title=None,
     
     # Зберігаємо якщо потрібно
     if save_path:
+        # Створюємо директорію якщо потрібно
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     
     return cm
@@ -148,6 +151,7 @@ def plot_feature_importance(feature_names, importances, top_n=20,
     plt.tight_layout()
     
     if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
 
@@ -201,6 +205,7 @@ def plot_learning_curves(train_scores, val_scores, train_sizes=None,
     plt.tight_layout()
     
     if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
 
@@ -217,10 +222,43 @@ def save_experiment_summary(results, save_path):
     """
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
+    # Конвертуємо numpy типи в звичайні Python типи
+    def convert_numpy_types(obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {key: convert_numpy_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_numpy_types(item) for item in obj]
+        else:
+            return obj
+    
+    # Конвертуємо всі numpy типи
+    results_converted = convert_numpy_types(results)
+    
     # Зберігаємо в JSON
     json_path = save_path.replace('.txt', '.json')
     with open(json_path, 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+        json.dump(results_converted, f, ensure_ascii=False, indent=2)
+    
+    # Зберігаємо читабельний текстовий звіт
+    with open(save_path, 'w', encoding='utf-8') as f:
+        f.write("Резюме експерименту\n")
+        f.write("=" * 50 + "\n\n")
+        
+        for key, value in results_converted.items():
+            if isinstance(value, (int, float)):
+                f.write(f"{key}: {value:.4f}\n")
+            elif isinstance(value, dict):
+                f.write(f"\n{key}:\n")
+                for k, v in value.items():
+                    f.write(f"  {k}: {v}\n")
+            else:
+                f.write(f"{key}: {value}\n")
     
     # Зберігаємо читабельний текстовий звіт
     with open(save_path, 'w', encoding='utf-8') as f:
@@ -274,6 +312,7 @@ def compare_models_barplot(model_names, accuracies, title="Порівняння 
     plt.tight_layout()
     
     if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
 

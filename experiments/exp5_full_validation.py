@@ -7,11 +7,17 @@
 import os
 import sys
 import numpy as np
+
+# Налаштування matplotlib backend
+import matplotlib
+if not hasattr(sys, 'ps1'):  # Якщо не в інтерактивному режимі
+    matplotlib.use('Agg')
+    
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from scipy import stats
 
 # Додаємо шлях до модулів проекту
@@ -323,6 +329,9 @@ def run(results_dir=None):
                                  f"{results_dir}/reports/exp5_baseline_report.txt")
         save_classification_report(report_extended,
                                  f"{results_dir}/reports/exp5_enhanced_report.txt")
+    
+    # Закриваємо всі фігури matplotlib
+    plt.close('all')
     
     return results
 

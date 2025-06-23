@@ -27,6 +27,12 @@ class BaseKunchenkoExtractor(BaseEstimator, TransformerMixin):
         C = 2*i - 4 + (2/i)
         return A + B*alpha + C*(alpha**2)
     
+    def _create_basis_function(self, power):
+        """Створює базисну функцію з заданою степенню"""
+        def basis_func(x):
+            return np.sign(x) * (np.abs(x) + self.epsilon)**power
+        return basis_func
+    
     def fit(self, X_3d, y):
         """
         Навчає моделі реконструкції для кожного класу.
@@ -38,14 +44,13 @@ class BaseKunchenkoExtractor(BaseEstimator, TransformerMixin):
         y : array, shape (n_samples,)
             Мітки класів
         """
-        # Створюємо базисні функції
-        self.basis_functions = []
+        # Зберігаємо параметри базисних функцій замість самих функцій
+        self.basis_powers_ = []
         for i in range(2, self.n + 1):
             p = self._compute_power(i, self.alpha)
-            self.basis_functions.append(
-                lambda x, p=p, eps=self.epsilon: np.sign(x) * (np.abs(x) + eps)**p
-            )
-        self.n_basis_funcs = len(self.basis_functions)
+            self.basis_powers_.append(p)
+        
+        self.n_basis_funcs = len(self.basis_powers_)
         
         # Унікальні класи
         self.classes_ = np.unique(y)
@@ -97,7 +102,12 @@ class BaseKunchenkoExtractor(BaseEstimator, TransformerMixin):
     
     def _apply_basis(self, signal_data):
         """Застосовує базисні функції до сигналу"""
-        return np.stack([func(signal_data) for func in self.basis_functions], axis=-1)
+        # Відтворюємо базисні функції з збережених параметрів
+        basis_results = []
+        for power in self.basis_powers_:
+            result = np.sign(signal_data) * (np.abs(signal_data) + self.epsilon)**power
+            basis_results.append(result)
+        return np.stack(basis_results, axis=-1)
 
 
 class AggregatedFeatureExtractor(BaseKunchenkoExtractor):
@@ -249,35 +259,117 @@ class EnsembleExpert(BaseKunchenkoExtractor):
         
     def fit(self, X_3d, y):
         """Перевизначаємо для створення специфічних базисних функцій"""
-        # Створюємо базисні функції відповідно до типу
+        # Зберігаємо тип базису та його параметри
+        self.basis_params_ = []
+        
         if self.basis_type == 'polynomial':
-            self.basis_functions = [
-                lambda x: x**2,
-                lambda x: x**3,
-                lambda x: x**4
-            ]
+            self.basis_params_ = [('power', 2), ('power', 3), ('power', 4)]
         elif self.basis_type == 'trigonometric':
-            self.basis_functions = [
-                lambda x: np.sin(x),
-                lambda x: np.cos(x),
-                lambda x: np.sin(2*x)
-            ]
+            self.basis_params_ = [('sin', 1), ('cos', 1), ('sin', 2)]
         elif self.basis_type == 'robust':
-            self.basis_functions = [
-                lambda x: np.tanh(x),
-                lambda x: 1/(1+np.exp(-x))
-            ]
+            self.basis_params_ = [('tanh', 1), ('sigmoid', 1)]
         elif self.basis_type == 'fractional':
-            self.basis_functions = [
-                lambda x: np.sign(x) * np.sqrt(np.abs(x)),
-                lambda x: np.sign(x) * np.cbrt(np.abs(x))
-            ]
+            self.basis_params_ = [('sqrt', 1), ('cbrt', 1)]
         
-        self.n_basis_funcs = len(self.basis_functions)
+        self.n_basis_funcs = len(self.basis_params_)
         
-        # Далі використовуємо базову логіку навчання
-        return super().fit(X_3d, y)
+        # Унікальні класи
+        self.classes_ = np.unique(y)
+        n_signals = X_3d.shape[2]
+        
+        # Словник для зберігання моделей кожного класу
+        self.models_ = {}
+        
+        for c in self.classes_:
+            X_class = X_3d[y == c]
+            class_model = {}
+            
+            for signal_idx in range(n_signals):
+                # Отримуємо всі сигнали даного типу для класу c
+                all_signals = X_class[:, :, signal_idx]
+                all_basis = self._apply_basis_ensemble(all_signals)
+                
+                # Обчислюємо математичні сподівання
+                E_x = np.mean(all_signals)
+                E_phi = np.mean(all_basis, axis=(0, 1))
+                
+                # Центруємо дані
+                centered_signals = all_signals - E_x
+                centered_basis = all_basis - E_phi
+                
+                # Формуємо матриці для системи рівнянь
+                n_pts = centered_signals.size
+                flat_basis = centered_basis.reshape(n_pts, self.n_basis_funcs)
+                flat_signals = centered_signals.flatten()
+                
+                # Матриця кореляцій F та вектор B
+                F = flat_basis.T @ flat_basis / n_pts
+                b = flat_basis.T @ flat_signals / n_pts
+                
+                # Регуляризована система
+                F_reg = F + self.lambda_reg * np.eye(self.n_basis_funcs)
+                K = np.linalg.solve(F_reg, b)
+                
+                # Зберігаємо параметри моделі
+                class_model[signal_idx] = {
+                    'K': K,
+                    'E_x': E_x,
+                    'E_phi': E_phi
+                }
+                
+            self.models_[c] = class_model
+            
+        return self
+    
+    def _apply_basis_ensemble(self, signal_data):
+        """Застосовує базисні функції відповідно до типу"""
+        basis_results = []
+        
+        for func_type, param in self.basis_params_:
+            if func_type == 'power':
+                result = signal_data ** param
+            elif func_type == 'sin':
+                result = np.sin(param * signal_data)
+            elif func_type == 'cos':
+                result = np.cos(param * signal_data)
+            elif func_type == 'tanh':
+                result = np.tanh(signal_data)
+            elif func_type == 'sigmoid':
+                result = 1 / (1 + np.exp(-signal_data))
+            elif func_type == 'sqrt':
+                result = np.sign(signal_data) * np.sqrt(np.abs(signal_data))
+            elif func_type == 'cbrt':
+                result = np.sign(signal_data) * np.cbrt(np.abs(signal_data))
+            else:
+                raise ValueError(f"Unknown function type: {func_type}")
+            
+            basis_results.append(result)
+        
+        return np.stack(basis_results, axis=-1)
     
     def transform(self, X_3d):
         """Використовуємо агреговану трансформацію"""
-        return AggregatedFeatureExtractor.transform(self, X_3d)
+        n_samples = X_3d.shape[0]
+        features = np.zeros((n_samples, len(self.classes_)))
+        
+        for i in range(n_samples):
+            for c_idx, c in enumerate(self.classes_):
+                total_error = 0
+                
+                # Сумуємо похибки по всіх каналах
+                for signal_idx in range(X_3d.shape[2]):
+                    signal_1d = X_3d[i, :, signal_idx]
+                    model = self.models_[c][signal_idx]
+                    K, E_x, E_phi = model['K'], model['E_x'], model['E_phi']
+                    
+                    # Реконструкція сигналу
+                    basis_matrix = self._apply_basis_ensemble(signal_1d)
+                    reconstructed_signal = E_x + (basis_matrix - E_phi) @ K
+                    
+                    # Додаємо MSE до загальної похибки
+                    total_error += np.mean((signal_1d - reconstructed_signal)**2)
+                
+                # Логарифм для стабільності
+                features[i, c_idx] = np.log(total_error + 1e-9)
+                
+        return features

@@ -7,6 +7,12 @@
 import os
 import sys
 import numpy as np
+
+# Налаштування matplotlib backend
+import matplotlib
+if not hasattr(sys, 'ps1'):  # Якщо не в інтерактивному режимі
+    matplotlib.use('Agg')
+    
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.svm import SVC
@@ -242,6 +248,9 @@ def run(results_dir=None):
     if results_dir:
         save_experiment_summary(results, 
                               f"{results_dir}/reports/exp2_summary.txt")
+    
+    # Закриваємо всі фігури matplotlib
+    plt.close('all')
     
     return results
 
