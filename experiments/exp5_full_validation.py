@@ -71,7 +71,7 @@ def mcnemar_test(y_true, y_pred1, y_pred2):
 
 def run(results_dir=None):
     """
-    Запускає експеримент з інкрементальною валідацією.
+    Запускає експеимент з інкрементальною валідацією.
     
     Parameters:
     -----------
@@ -84,8 +84,12 @@ def run(results_dir=None):
         Словник з результатами експерименту
     """
     
-    print("Запуск експерименту з інкрементальною валідацією...")
+    print("Запуск експеимент з інкрементальною валідацією...")
     print("Мета: довести унікальну інформаційну цінність ознак SKPR")
+    
+    if results_dir:
+        os.makedirs(f"{results_dir}/figures", exist_ok=True)
+        os.makedirs(f"{results_dir}/reports", exist_ok=True)
     
     # 1. Завантаження всіх даних
     print("\n1. Завантаження даних...")

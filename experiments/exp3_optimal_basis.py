@@ -95,6 +95,11 @@ def run(results_dir=None):
     
     print("Запуск експерименту з оптимізації параметрів базису...")
     
+    # Додаємо створення підпапок
+    if results_dir:
+        os.makedirs(f"{results_dir}/figures", exist_ok=True)
+        os.makedirs(f"{results_dir}/reports", exist_ok=True)
+    
     # 1. Завантаження даних
     print("\n1. Завантаження даних...")
     X_train_full, y_train_full = load_raw_signals_and_labels("train")
