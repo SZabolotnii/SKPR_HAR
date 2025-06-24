@@ -128,7 +128,7 @@ def run(results_dir=None):
     
     # Параметри для пошуку
     n_values = [2, 3, 4, 5]  # Кількість базисних функцій
-    alpha_values = [0.0, 0.25, 0.5, 0.75, 1.0]  # Параметр alpha
+    alpha_values = [0, 1]  # Параметр alpha
     
     print(f"   n: {n_values}")
     print(f"   alpha: {alpha_values}")

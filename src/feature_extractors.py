@@ -17,8 +17,8 @@ class BaseKunchenkoExtractor(BaseEstimator, TransformerMixin):
     def __init__(self, lambda_reg=0.01, epsilon=1e-8):
         self.lambda_reg = lambda_reg  # Параметр регуляризації
         self.epsilon = epsilon        # Для числової стабільності
-        self.n = 3                   # Кількість базисних функцій
-        self.alpha = 0.0             # Параметр для обчислення степенів
+        self.n = 4                   # Кількість базисних функцій
+        self.alpha = 1             # Параметр для обчислення степенів
         
     def _compute_power(self, i, alpha):
         """Обчислює степінь для i-ої базисної функції"""
@@ -265,11 +265,11 @@ class EnsembleExpert(BaseKunchenkoExtractor):
         if self.basis_type == 'polynomial':
             self.basis_params_ = [('power', 2), ('power', 3), ('power', 4)]
         elif self.basis_type == 'trigonometric':
-            self.basis_params_ = [('sin', 1), ('cos', 1), ('sin', 2)]
+            self.basis_params_ = [('sin', 1), ('sin', 2), ('sin', 3)]
         elif self.basis_type == 'robust':
-            self.basis_params_ = [('tanh', 1), ('sigmoid', 1)]
+            self.basis_params_ = [('tanh', 1), ('sigmoid', 1), ('atan', 1)]
         elif self.basis_type == 'fractional':
-            self.basis_params_ = [('sqrt', 1), ('cbrt', 1)]
+            self.basis_params_ = [('sqrt', 1), ('cbrt', 1), ('frt', 1)]
         
         self.n_basis_funcs = len(self.basis_params_)
         
@@ -340,6 +340,10 @@ class EnsembleExpert(BaseKunchenkoExtractor):
                 result = np.sign(signal_data) * np.sqrt(np.abs(signal_data))
             elif func_type == 'cbrt':
                 result = np.sign(signal_data) * np.cbrt(np.abs(signal_data))
+            elif func_type == 'atan':
+                result = np.arctan(signal_data)
+            elif func_type == 'frt': # Fourth Root
+                result = np.sign(signal_data) * np.power(np.abs(signal_data), 1/4)
             else:
                 raise ValueError(f"Unknown function type: {func_type}")
             

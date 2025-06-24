@@ -31,7 +31,7 @@ from src.utils import plot_confusion_matrix, compare_models_barplot, save_experi
 
 def run(results_dir=None):
     """
-    Запускає експеримент з ансамблем експертів.
+    Запускає експеимент з ансамблем експертів.
     
     Parameters:
     -----------
@@ -45,6 +45,10 @@ def run(results_dir=None):
     """
     
     print("Запуск експерименту з ансамблем експертів...")
+    
+    if results_dir:
+        os.makedirs(f"{results_dir}/figures", exist_ok=True)
+        os.makedirs(f"{results_dir}/reports", exist_ok=True)
     
     # 1. Завантаження даних
     print("\n1. Завантаження даних...")
@@ -67,15 +71,15 @@ def run(results_dir=None):
         },
         "Trigonometric": {
             "extractor": EnsembleExpert(basis_type='trigonometric'),
-            "description": "sin(x), cos(x), sin(2x)"
+            "description": "sin(x), sin(2x), sin(3x)"
         },
         "Robust": {
             "extractor": EnsembleExpert(basis_type='robust'),
-            "description": "tanh(x), sigmoid(x)"
+            "description": "tanh(x), sigmoid(x), atanh(x)"
         },
         "Fractional": {
             "extractor": EnsembleExpert(basis_type='fractional'),
-            "description": "√|x|, ∛|x|"
+            "description": "√|x|, ∛|x|, ⁴√|x|"
         }
     }
     

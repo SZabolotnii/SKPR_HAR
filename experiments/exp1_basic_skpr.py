@@ -46,6 +46,10 @@ def run(results_dir=None):
     
     print("Запуск базового експерименту SKPR...")
     
+    if results_dir:
+        os.makedirs(f"{results_dir}/figures", exist_ok=True)
+        os.makedirs(f"{results_dir}/reports", exist_ok=True)
+    
     # 1. Завантаження даних
     print("1. Завантаження даних...")
     X_train, y_train = load_raw_signals_and_labels("train")
