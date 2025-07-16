@@ -1,134 +1,87 @@
-# HAR-SKPR: Human Activity Recognition using Statistical Pattern Recognition in Kunchenko Space
+# Application of Statistical Pattern Recognition in a Generating-Element Space for Human Activity Classification
 
-## Опис проекту
+This repository contains the official source code and experimental setup for the research paper: **"Application of Statistical Pattern Recognition in a Generating-Element Space for Human Activity Classification Using Smartphone Sensors"**.
 
-Цей проект містить реалізацію та експериментальну валідацію методу статистичного розпізнавання образів у просторі з порідним елементом (СКПР/SKPR) для задачі розпізнавання активності людини на основі даних сенсорів смартфона.
+The study introduces a novel feature engineering technique based on the mathematical framework of decomposition in a space with a generating element (DSGE), also known as Kunchenko space. This method is applied to the classic UCI HAR dataset to demonstrate its effectiveness in enhancing classification performance, particularly for non-Gaussian sensor data.
 
-## Вимоги
+## Abstract
 
-- Python 3.8+
-- NumPy
-- Scikit-learn
-- Matplotlib
-- Seaborn
-- Pandas
-- Jupyter (опціонально, для notebooks)
+Human Activity Recognition (HAR) is a cornerstone of modern context-aware computing. While traditional machine learning methods often assume a Gaussian distribution of sensor data, real-world signals are frequently non-Gaussian. This paper adapts the DSGE framework, originally from statistical pattern recognition, to generate powerful polynomial features from raw sensor signals. These features capture higher-order statistical dependencies that are often missed by standard time- and frequency-domain methods. Our experiments show that augmenting a traditional feature set with these DSGE features significantly improves classification accuracy, especially in distinguishing between challenging static activities like sitting and standing.
 
-## Встановлення
+## Methodology Overview
+
+The core of our approach is to generate a new, compact set of features for each activity class based on signal reconstruction error. The process can be summarized in three steps:
+
+1.  **Train Class-Specific Models:** For each of the six activities (e.g., WALKING, SITTING), a unique DSGE reconstruction model is trained using only the signal data corresponding to that activity. Each model learns the "typical" structure of its class.
+2.  **Generate Error Features:** For a new, unseen signal segment, we pass it through all six trained models. Each model attempts to reconstruct the signal, and we calculate the mean squared error of this reconstruction. This results in a 6-dimensional feature vector, where each component represents the "distance" or "dissimilarity" of the signal from the archetypal pattern of each class.
+3.  **Classify Using New Features:** This low-dimensional feature vector is then used as input for a standard classifier, such as a Support Vector Machine (SVM), to perform the final activity classification.
+
+
+## Repository Structure
+
+The project is organized into a series of numbered Python scripts, each corresponding to a specific experiment described in the paper. This structure allows for a clear and sequential reproduction of our findings.
+
+-   `1_UCI_HAR_DSGE_basic.py`: Implements **Experiment 1**. This script runs the most basic version of the DSGE method using a default set of basis functions and evaluates its performance.
+-   `2_UCI_HAR_basis_comparison.py`: Implements **Experiment 2**. It systematically compares four different types of basis functions (Polynomial, Trigonometric, Robust, Fractional) to analyze their impact on classification accuracy. The results from this script populate **Table 1** in the paper.
+-   `3_UCI_HAR_basis_optimization.py`: Implements **Experiment 3**. This script performs a grid search to find the optimal number of basis functions for the best-performing basis type (Fractional), demonstrating that a compact set of features can achieve high accuracy.
+-   `4_UCI_HAR_hybrid_model.py`: Implements **Experiment 4 & 5**. This is the final and most comprehensive experiment.
+    -   It develops a **hybrid model** by combining the 6 DSGE features with the most informative traditional features.
+    -   It performs an **incremental validation** by adding the 6 DSGE features to the full set of 561 traditional features to prove their unique informational value.
+    -   The results from this script populate **Table 2** and are discussed in the final sections of the paper.
+
+## Getting Started
+
+### Prerequisites
+
+-   Python 3.9 or higher
+-   A virtual environment is recommended.
+
+### Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/SZabolotnii/SKPR_HAR.git
+    cd SKPR_HAR
+    ```
+
+2.  Create and activate a virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    ```
+
+3.  Install the required dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+### How to Run the Experiments
+
+The scripts are designed to be run sequentially, but they can also be executed independently as they are self-contained. The UCI HAR dataset will be automatically handled by the script logic (it is typically included with `scikit-learn` or downloaded).
+
+To run a specific experiment, simply execute the corresponding Python file. For example, to run the final hybrid model experiment:
 
 ```bash
-git clone https://github.com/SZabolotnii/SKPR_HAR
-cd SKPR_HAR
-pip install -r requirements.txt
+python 4_UCI_HAR_hybrid_model.py
 ```
 
-## Структура експериментів
+The script will print the classification results and metrics directly to the console.
 
-### Експеримент 1: Базовий метод SKPR (неоптимізований)
-- Генерація 6 агрегованих ознак на основі похибки реконструкції
-- Класифікація за допомогою SVM з базовими параметрами (n=4, α=1)
-- **Результат: 77.71% точності**
+## How to Cite
 
-### Експеримент 2: Ансамбль експертів
-- Порівняння 4 різних типів базисних функцій:
-  - Поліноміальний (x², x³, x⁴): 76.04%
-  - Тригонометричний (sin(x), sin(2x), sin(3x)): 78.76%
-  - Робастний (tanh(x), sigmoid(x), atan(x)): 81.40%
-  - Дробово-степеневий (sign(x)·|x|^(1/2), sign(x)·|x|^(1/3), sign(x)·|x|^(1/4)): **82.59%**
-- Ансамбль всіх 4 типів (24 ознаки): **84.63%**
+If you use this code or the methodology in your research, please cite our paper:
 
-### Експеримент 3: Оптимізація параметрів базису
-- Grid search для пошуку оптимальних параметрів дробово-степеневого базису
-- Знайдено оптимальні параметри: n=3, α=0.0
-- Валідаційна точність: 83.41%
-- **Тестова точність: 84.36%**
-
-### Експеримент 4: Гібридна модель
-- Поєднання 6 ознак SKPR + 24 найкращі традиційні ознаки
-- Відбір традиційних ознак за допомогою Random Forest
-- Оптимізація параметрів SVM: C=100, γ=0.01
-- **Результат: 88.46% точності**
-
-### Експеримент 5: Інкрементальна валідація
-- Додавання 6 ознак SKPR до повного набору з 561 традиційної ознаки
-- Тест МакНемара для статистичної значущості
-- **Результат: покращення з 95.72% до 95.86% (+0.14%)**
-- Виправлено 7 помилок (всі пов'язані з розрізненням SITTING/STANDING)
-
-## Запуск експериментів
-
-### Всі експерименти одночасно:
-```bash
-python run_all_experiments.py
-```
-
-### Окремі експерименти:
-```bash
-python experiments/exp1_basic_skpr.py
-python experiments/exp2_ensemble_analysis.py
-python experiments/exp3_optimal_basis.py
-python experiments/exp4_hybrid_model.py
-python experiments/exp5_full_validation.py
-```
-
-## Структура даних
-
-Проект автоматично завантажує датасет UCI HAR Dataset, який містить:
-- 9 сигналів сенсорів (3-осьові акселерометр тіла, гіроскоп, загальне прискорення)
-- 6 класів активності: WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING
-- 7352 тренувальних зразків, 2947 тестових зразків
-- Сегментація вікнами по 2.56 секунди (128 відліків) з 50% перекриттям
-
-## Ключові результати
-
-| Експеримент | Конфігурація | Точність | Особливості |
-|-------------|--------------|----------|-------------|
-| 1. Базовий | 6 ознак (неоптимізовано) | 77.71% | Демонстрація потенціалу |
-| 2. Ансамбль | 24 ознаки (4 типи базису) | 84.63% | Найкращий результат ансамблю |
-| 3. Оптимізований | 6 ознак (n=3, α=0.0) | 84.36% | Оптимальна ефективність |
-| 4. Гібридний | 30 ознак (6 СКПР + 24 традиційних) | 88.46% | Найвищий результат |
-| 5. Інкрементальний | 567 ознак (561 + 6 СКПР) | 95.86% | Комплементарність |
-
-## Оптимальна конфігурація
-
-Найкращі параметри для дробово-степеневого базису:
-- **n = 3** (кількість базисних функцій)
-- **α = 0.0** (параметр для обчислення степенів)
-- **λ = 0.01** (параметр регуляризації)
-
-Базисні функції:
-- φ₁(x) = sign(x)·|x|^(1/2)
-- φ₂(x) = sign(x)·|x|^(1/3)  
-- φ₃(x) = sign(x)·|x|^(1/4)
-
-## Результати
-
-Всі результати зберігаються в директорії `results/`:
-- `figures/` - матриці плутанини, графіки порівняння та візуалізації
-- `models/` - навчені моделі у форматі pickle
-- `reports/` - детальні звіти класифікації та статистичний аналіз
-
-## Практичне застосування
-
-Метод підходить для:
-- Системи реального часу на мобільних пристроях (завдяки компактності 6 ознак)
-- Покращення існуючих HAR систем (через гібридний підхід)
-- Розрізнення статичних активностей (SITTING/STANDING)
-- Енергоефективний моніторинг активності
-
-## Цитування
-
-Якщо ви використовуєте цей код у своїх дослідженнях, будь ласка, посилайтесь на:
-
-```
-@article{zabolotnii2024har,
-  title={Статистичне розпізнавання образів у просторі з порідним елементом для класифікації активності людини за допомогою сенсорів смартфона},
-  author={Заболотній, С.В.},
-  journal={...},
-  year={2024}
+```bibtex
+@inproceedings{zabolotnii202Xhar,
+  title={Application of Statistical Pattern Recognition in a Generating-Element Space for Human Activity Classification Using Smartphone Sensors},
+  author={Zabolotnii, Serhii and Khotunov, Vladislav and Chepynoha, Anatolii and Klopotovskyi, Pavlo},
+  booktitle={Proceedings of the ... Conference ...},
+  year={2025},
+  pages={...},
+  publisher={...}
 }
 ```
 
-## Ліцензія
+## License
 
-MIT License
+This project is licensed under the MIT License. See the `LICENSE` file for details.
